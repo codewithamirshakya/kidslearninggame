@@ -1,0 +1,696 @@
+import React, { useState, useEffect, useCallback } from 'react';
+
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+const letterData = {
+  A: { word: 'Apple', emoji: '🍎' },
+  B: { word: 'Ball', emoji: '⚽' },
+  C: { word: 'Cat', emoji: '🐱' },
+  D: { word: 'Dog', emoji: '🐕' },
+  E: { word: 'Elephant', emoji: '🐘' },
+  F: { word: 'Fish', emoji: '🐟' },
+  G: { word: 'Grapes', emoji: '🍇' },
+  H: { word: 'House', emoji: '🏠' },
+  I: { word: 'Ice Cream', emoji: '🍦' },
+  J: { word: 'Jellyfish', emoji: '🪼' },
+  K: { word: 'Kite', emoji: '🪁' },
+  L: { word: 'Lion', emoji: '🦁' },
+  M: { word: 'Moon', emoji: '🌙' },
+  N: { word: 'Nest', emoji: '🪺' },
+  O: { word: 'Orange', emoji: '🍊' },
+  P: { word: 'Penguin', emoji: '🐧' },
+  Q: { word: 'Queen', emoji: '👑' },
+  R: { word: 'Rainbow', emoji: '🌈' },
+  S: { word: 'Star', emoji: '⭐' },
+  T: { word: 'Tree', emoji: '🌳' },
+  U: { word: 'Umbrella', emoji: '☂️' },
+  V: { word: 'Violin', emoji: '🎻' },
+  W: { word: 'Whale', emoji: '🐋' },
+  X: { word: 'Xylophone', emoji: '🎵' },
+  Y: { word: 'Yacht', emoji: '⛵' },
+  Z: { word: 'Zebra', emoji: '🦓' }
+};
+
+const colors = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+  '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+  '#F8B500', '#00CED1', '#FF69B4', '#32CD32', '#FFD700'
+];
+
+const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
+
+// Confetti component for celebrations
+const Confetti = ({ active }) => {
+  if (!active) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+      {[...Array(50)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute animate-bounce"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `-20px`,
+            animationDelay: `${Math.random() * 2}s`,
+            animationDuration: `${2 + Math.random() * 2}s`,
+            fontSize: '24px',
+            animation: `fall ${2 + Math.random() * 3}s linear forwards`
+          }}
+        >
+          {['🎉', '⭐', '🌟', '✨', '🎊'][Math.floor(Math.random() * 5)]}
+        </div>
+      ))}
+      <style>{`
+        @keyframes fall {
+          to {
+            transform: translateY(100vh) rotate(720deg);
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// Main Menu Component
+const MainMenu = ({ onSelectGame }) => {
+  const games = [
+    { id: 'learn', title: 'Learn ABCs', emoji: '📚', color: '#FF6B6B', desc: 'Explore letters & words' },
+    { id: 'match', title: 'Match Game', emoji: '🎯', color: '#4ECDC4', desc: 'Match letters to pictures' },
+    { id: 'type', title: 'Type Letters', emoji: '⌨️', color: '#45B7D1', desc: 'Practice typing ABCs' },
+    { id: 'quiz', title: 'Letter Quiz', emoji: '🧠', color: '#96CEB4', desc: 'Test your knowledge' },
+    { id: 'sequence', title: 'ABC Order', emoji: '🔤', color: '#DDA0DD', desc: 'Put letters in order' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-yellow-200 flex flex-col items-center justify-center p-4">
+      <div className="text-center mb-8">
+        <h1 className="text-5xl font-bold text-white drop-shadow-lg mb-2">
+          🌈 ABC Fun! 🌈
+        </h1>
+        <p className="text-xl text-white/90">Choose a game to play!</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl">
+        {games.map((game) => (
+          <button
+            key={game.id}
+            onClick={() => onSelectGame(game.id)}
+            className="p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200 text-white"
+            style={{ backgroundColor: game.color }}
+          >
+            <div className="text-5xl mb-3">{game.emoji}</div>
+            <h2 className="text-2xl font-bold mb-1">{game.title}</h2>
+            <p className="text-sm opacity-90">{game.desc}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Learn ABCs Component
+const LearnABCs = ({ onBack }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const letter = alphabet[currentIndex];
+  const data = letterData[letter];
+
+  const speak = useCallback((text) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.8;
+      utterance.pitch = 1.2;
+      speechSynthesis.speak(utterance);
+    }
+  }, []);
+
+  const handleLetterClick = () => {
+    setIsAnimating(true);
+    speak(`${letter}. ${letter} is for ${data.word}`);
+    setTimeout(() => setIsAnimating(false), 500);
+  };
+
+  const navigate = (direction) => {
+    setCurrentIndex((prev) => {
+      if (direction === 'next') return (prev + 1) % 26;
+      return prev === 0 ? 25 : prev - 1;
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-300 to-pink-300 flex flex-col items-center justify-center p-4">
+      <button
+        onClick={onBack}
+        className="absolute top-4 left-4 bg-white/80 hover:bg-white px-4 py-2 rounded-full font-bold shadow-lg"
+      >
+        ← Back
+      </button>
+
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+        <div className="flex justify-between mb-4">
+          <button
+            onClick={() => navigate('prev')}
+            className="bg-purple-500 hover:bg-purple-600 text-white w-12 h-12 rounded-full text-2xl font-bold shadow-lg"
+          >
+            ←
+          </button>
+          <span className="text-gray-500 self-center">
+            {currentIndex + 1} / 26
+          </span>
+          <button
+            onClick={() => navigate('next')}
+            className="bg-purple-500 hover:bg-purple-600 text-white w-12 h-12 rounded-full text-2xl font-bold shadow-lg"
+          >
+            →
+          </button>
+        </div>
+
+        <div
+          onClick={handleLetterClick}
+          className={`cursor-pointer select-none ${isAnimating ? 'animate-pulse scale-110' : ''} transition-transform duration-200`}
+        >
+          <div
+            className="text-9xl font-bold mb-4"
+            style={{ color: colors[currentIndex % colors.length] }}
+          >
+            {letter}
+          </div>
+          <div className="text-8xl mb-4">{data.emoji}</div>
+          <div className="text-3xl font-bold text-gray-700">
+            {letter} is for {data.word}
+          </div>
+        </div>
+
+        <p className="mt-4 text-gray-500">Tap the letter to hear it!</p>
+
+        <div className="flex justify-center gap-1 mt-6 flex-wrap">
+          {alphabet.map((l, i) => (
+            <button
+              key={l}
+              onClick={() => setCurrentIndex(i)}
+              className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${i === currentIndex
+                  ? 'bg-purple-500 text-white scale-110'
+                  : 'bg-gray-200 hover:bg-gray-300'
+                }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Match Game Component
+const MatchGame = ({ onBack }) => {
+  const [score, setScore] = useState(0);
+  const [round, setRound] = useState(1);
+  const [targetLetter, setTargetLetter] = useState('');
+  const [options, setOptions] = useState([]);
+  const [feedback, setFeedback] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const generateRound = useCallback(() => {
+    const target = alphabet[Math.floor(Math.random() * 26)];
+    const wrongOptions = alphabet
+      .filter((l) => l !== target)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const allOptions = [...wrongOptions, target].sort(() => Math.random() - 0.5);
+
+    setTargetLetter(target);
+    setOptions(allOptions);
+    setFeedback(null);
+  }, []);
+
+  useEffect(() => {
+    generateRound();
+  }, [generateRound]);
+
+  const handleSelect = (letter) => {
+    if (feedback) return;
+
+    if (letter === targetLetter) {
+      setFeedback('correct');
+      setScore((s) => s + 10);
+      setShowConfetti(true);
+      setTimeout(() => {
+        setShowConfetti(false);
+        setRound((r) => r + 1);
+        generateRound();
+      }, 1500);
+    } else {
+      setFeedback('wrong');
+      setTimeout(() => setFeedback(null), 1000);
+    }
+  };
+
+  const data = letterData[targetLetter];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-400 via-teal-300 to-blue-400 flex flex-col items-center justify-center p-4">
+      <Confetti active={showConfetti} />
+
+      <button
+        onClick={onBack}
+        className="absolute top-4 left-4 bg-white/80 hover:bg-white px-4 py-2 rounded-full font-bold shadow-lg"
+      >
+        ← Back
+      </button>
+
+      <div className="absolute top-4 right-4 bg-white/80 px-4 py-2 rounded-full font-bold shadow-lg">
+        Score: {score} | Round: {round}
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+        <h2 className="text-2xl font-bold text-gray-700 mb-4">
+          Find the letter for:
+        </h2>
+
+        <div className="text-8xl mb-2">{data?.emoji}</div>
+        <div className="text-2xl font-bold text-gray-600 mb-6">{data?.word}</div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {options.map((letter) => (
+            <button
+              key={letter}
+              onClick={() => handleSelect(letter)}
+              disabled={feedback === 'correct'}
+              className={`text-5xl font-bold py-6 rounded-2xl transition-all transform hover:scale-105 ${feedback === 'correct' && letter === targetLetter
+                  ? 'bg-green-500 text-white scale-110'
+                  : feedback === 'wrong'
+                    ? 'bg-gray-200'
+                    : 'bg-gradient-to-br from-purple-400 to-pink-400 text-white hover:from-purple-500 hover:to-pink-500'
+                }`}
+            >
+              {letter}
+            </button>
+          ))}
+        </div>
+
+        {feedback === 'correct' && (
+          <div className="mt-4 text-2xl font-bold text-green-500 animate-bounce">
+            🎉 Correct! Great job! 🎉
+          </div>
+        )}
+        {feedback === 'wrong' && (
+          <div className="mt-4 text-xl font-bold text-red-500">
+            Try again! 💪
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Type Letters Game Component
+const TypeGame = ({ onBack }) => {
+  const [currentLetter, setCurrentLetter] = useState('');
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [feedback, setFeedback] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const generateLetter = useCallback(() => {
+    setCurrentLetter(alphabet[Math.floor(Math.random() * 26)]);
+    setFeedback(null);
+  }, []);
+
+  useEffect(() => {
+    generateLetter();
+  }, [generateLetter]);
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      const pressed = e.key.toUpperCase();
+      if (!/^[A-Z]$/.test(pressed)) return;
+
+      if (pressed === currentLetter) {
+        setFeedback('correct');
+        setScore((s) => s + 10 + streak * 2);
+        setStreak((s) => s + 1);
+        setShowConfetti(true);
+        setTimeout(() => {
+          setShowConfetti(false);
+          generateLetter();
+        }, 1000);
+      } else {
+        setFeedback('wrong');
+        setStreak(0);
+        setTimeout(() => setFeedback(null), 500);
+      }
+    };
+
+    window.addEventListener('keypress', handleKeyPress);
+    return () => window.removeEventListener('keypress', handleKeyPress);
+  }, [currentLetter, streak, generateLetter]);
+
+  const data = letterData[currentLetter];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-red-300 to-pink-400 flex flex-col items-center justify-center p-4">
+      <Confetti active={showConfetti} />
+
+      <button
+        onClick={onBack}
+        className="absolute top-4 left-4 bg-white/80 hover:bg-white px-4 py-2 rounded-full font-bold shadow-lg"
+      >
+        ← Back
+      </button>
+
+      <div className="absolute top-4 right-4 bg-white/80 px-4 py-2 rounded-full font-bold shadow-lg">
+        Score: {score} | Streak: {streak}🔥
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+        <h2 className="text-2xl font-bold text-gray-700 mb-4">
+          Type this letter!
+        </h2>
+
+        <div
+          className={`text-9xl font-bold mb-4 transition-all duration-200 ${feedback === 'correct'
+              ? 'text-green-500 scale-110'
+              : feedback === 'wrong'
+                ? 'text-red-500 animate-pulse'
+                : ''
+            }`}
+          style={{ color: feedback ? undefined : getRandomColor() }}
+        >
+          {currentLetter}
+        </div>
+
+        <div className="text-6xl mb-2">{data?.emoji}</div>
+        <div className="text-xl text-gray-600">{data?.word}</div>
+
+        {feedback === 'correct' && (
+          <div className="mt-4 text-2xl font-bold text-green-500 animate-bounce">
+            ✨ Perfect! ✨
+          </div>
+        )}
+        {feedback === 'wrong' && (
+          <div className="mt-4 text-xl font-bold text-red-500">
+            Not quite! Try again!
+          </div>
+        )}
+
+        <div className="mt-6 p-4 bg-gray-100 rounded-xl">
+          <p className="text-gray-500">
+            Press the <span className="font-bold text-purple-500">{currentLetter}</span> key on your keyboard!
+          </p>
+        </div>
+
+        {/* Virtual keyboard for mobile */}
+        <div className="mt-4 grid grid-cols-7 gap-1">
+          {alphabet.map((letter) => (
+            <button
+              key={letter}
+              onClick={() => {
+                const event = new KeyboardEvent('keypress', { key: letter });
+                window.dispatchEvent(event);
+              }}
+              className="w-10 h-10 bg-gray-200 hover:bg-purple-400 hover:text-white rounded-lg font-bold text-sm transition-colors"
+            >
+              {letter}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Letter Quiz Component
+const QuizGame = ({ onBack }) => {
+  const [question, setQuestion] = useState(null);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [feedback, setFeedback] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const questionTypes = ['whatLetter', 'whatWord', 'uppercase', 'nextLetter'];
+
+  const generateQuestion = useCallback(() => {
+    const type = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+    const letterIndex = Math.floor(Math.random() * 26);
+    const letter = alphabet[letterIndex];
+    const data = letterData[letter];
+
+    let q = { type, correct: '' };
+
+    switch (type) {
+      case 'whatLetter':
+        q.text = `What letter does "${data.word}" start with?`;
+        q.emoji = data.emoji;
+        q.correct = letter;
+        q.options = [letter, ...alphabet.filter(l => l !== letter).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+        break;
+      case 'whatWord':
+        q.text = `What word starts with "${letter}"?`;
+        q.correct = data.word;
+        q.options = [data.word, ...Object.values(letterData).filter(d => d.word !== data.word).sort(() => Math.random() - 0.5).slice(0, 3).map(d => d.word)].sort(() => Math.random() - 0.5);
+        break;
+      case 'uppercase':
+        q.text = `What is the uppercase of "${letter.toLowerCase()}"?`;
+        q.correct = letter;
+        q.options = [letter, ...alphabet.filter(l => l !== letter).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+        break;
+      case 'nextLetter':
+        if (letterIndex < 25) {
+          q.text = `What letter comes after "${letter}"?`;
+          q.correct = alphabet[letterIndex + 1];
+          q.options = [alphabet[letterIndex + 1], ...alphabet.filter(l => l !== alphabet[letterIndex + 1]).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+        } else {
+          q.text = `What letter comes before "${letter}"?`;
+          q.correct = alphabet[letterIndex - 1];
+          q.options = [alphabet[letterIndex - 1], ...alphabet.filter(l => l !== alphabet[letterIndex - 1]).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+        }
+        break;
+    }
+
+    setQuestion(q);
+    setFeedback(null);
+  }, []);
+
+  useEffect(() => {
+    generateQuestion();
+  }, [generateQuestion]);
+
+  const handleAnswer = (answer) => {
+    if (feedback) return;
+
+    setTotal(t => t + 1);
+
+    if (answer === question.correct) {
+      setFeedback('correct');
+      setScore(s => s + 1);
+      setShowConfetti(true);
+      setTimeout(() => {
+        setShowConfetti(false);
+        generateQuestion();
+      }, 1500);
+    } else {
+      setFeedback({ wrong: true, selected: answer });
+      setTimeout(() => generateQuestion(), 2000);
+    }
+  };
+
+  if (!question) return null;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 flex flex-col items-center justify-center p-4">
+      <Confetti active={showConfetti} />
+
+      <button
+        onClick={onBack}
+        className="absolute top-4 left-4 bg-white/80 hover:bg-white px-4 py-2 rounded-full font-bold shadow-lg"
+      >
+        ← Back
+      </button>
+
+      <div className="absolute top-4 right-4 bg-white/80 px-4 py-2 rounded-full font-bold shadow-lg">
+        Score: {score}/{total}
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+        <h2 className="text-xl font-bold text-gray-700 mb-4">
+          {question.text}
+        </h2>
+
+        {question.emoji && (
+          <div className="text-7xl mb-4">{question.emoji}</div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {question.options.map((option) => (
+            <button
+              key={option}
+              onClick={() => handleAnswer(option)}
+              disabled={feedback !== null}
+              className={`text-xl font-bold py-4 px-6 rounded-xl transition-all ${feedback === 'correct' && option === question.correct
+                  ? 'bg-green-500 text-white scale-105'
+                  : feedback?.wrong && option === question.correct
+                    ? 'bg-green-500 text-white'
+                    : feedback?.wrong && option === feedback.selected
+                      ? 'bg-red-500 text-white'
+                      : 'bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500'
+                }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+
+        {feedback === 'correct' && (
+          <div className="mt-4 text-2xl font-bold text-green-500 animate-bounce">
+            🎉 Correct! 🎉
+          </div>
+        )}
+        {feedback?.wrong && (
+          <div className="mt-4 text-xl font-bold text-red-500">
+            The answer was: {question.correct}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ABC Sequence Game Component
+const SequenceGame = ({ onBack }) => {
+  const [letters, setLetters] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [score, setScore] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+
+  const generateLevel = useCallback(() => {
+    const count = Math.min(4 + level, 10);
+    const startIndex = Math.floor(Math.random() * (26 - count));
+    const levelLetters = alphabet.slice(startIndex, startIndex + count);
+    setLetters([...levelLetters].sort(() => Math.random() - 0.5));
+    setSelected([]);
+    setIsComplete(false);
+  }, [level]);
+
+  useEffect(() => {
+    generateLevel();
+  }, [generateLevel]);
+
+  const handleSelect = (letter) => {
+    const expectedIndex = selected.length;
+    const sortedLetters = [...letters].sort();
+
+    if (letter === sortedLetters[expectedIndex]) {
+      const newSelected = [...selected, letter];
+      setSelected(newSelected);
+
+      if (newSelected.length === letters.length) {
+        setIsComplete(true);
+        setShowConfetti(true);
+        setScore(s => s + level * 10);
+        setTimeout(() => {
+          setShowConfetti(false);
+          setLevel(l => l + 1);
+        }, 2000);
+      }
+    }
+  };
+
+  const sortedLetters = [...letters].sort();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-300 to-red-400 flex flex-col items-center justify-center p-4">
+      <Confetti active={showConfetti} />
+
+      <button
+        onClick={onBack}
+        className="absolute top-4 left-4 bg-white/80 hover:bg-white px-4 py-2 rounded-full font-bold shadow-lg"
+      >
+        ← Back
+      </button>
+
+      <div className="absolute top-4 right-4 bg-white/80 px-4 py-2 rounded-full font-bold shadow-lg">
+        Score: {score} | Level: {level}
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
+        <h2 className="text-2xl font-bold text-gray-700 mb-2">
+          Put the letters in ABC order!
+        </h2>
+        <p className="text-gray-500 mb-4">Tap letters in alphabetical order</p>
+
+        {/* Progress display */}
+        <div className="flex justify-center gap-2 mb-6 min-h-16 flex-wrap">
+          {sortedLetters.map((letter, i) => (
+            <div
+              key={i}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold transition-all ${selected.includes(letter)
+                  ? 'bg-green-500 text-white scale-105'
+                  : 'bg-gray-200 text-gray-400'
+                }`}
+            >
+              {selected.includes(letter) ? letter : '?'}
+            </div>
+          ))}
+        </div>
+
+        {/* Letter buttons */}
+        <div className="flex justify-center gap-2 flex-wrap">
+          {letters.map((letter) => (
+            <button
+              key={letter}
+              onClick={() => handleSelect(letter)}
+              disabled={selected.includes(letter) || isComplete}
+              className={`w-14 h-14 rounded-xl text-2xl font-bold transition-all transform hover:scale-105 ${selected.includes(letter)
+                  ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-br from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-lg'
+                }`}
+            >
+              {letter}
+            </button>
+          ))}
+        </div>
+
+        {isComplete && (
+          <div className="mt-6 text-2xl font-bold text-green-500 animate-bounce">
+            🎉 Perfect! Level Complete! 🎉
+          </div>
+        )}
+
+        <button
+          onClick={generateLevel}
+          className="mt-6 bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-full font-bold"
+        >
+          🔄 Reset Level
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Main App Component
+export default function ABCKidsGame() {
+  const [currentGame, setCurrentGame] = useState(null);
+
+  const renderGame = () => {
+    switch (currentGame) {
+      case 'learn':
+        return <LearnABCs onBack={() => setCurrentGame(null)} />;
+      case 'match':
+        return <MatchGame onBack={() => setCurrentGame(null)} />;
+      case 'type':
+        return <TypeGame onBack={() => setCurrentGame(null)} />;
+      case 'quiz':
+        return <QuizGame onBack={() => setCurrentGame(null)} />;
+      case 'sequence':
+        return <SequenceGame onBack={() => setCurrentGame(null)} />;
+      default:
+        return <MainMenu onSelectGame={setCurrentGame} />;
+    }
+  };
+
+  return renderGame();
+}
