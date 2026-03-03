@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<!-- saved from url=(0049)file:///Users/amir/Downloads/math-tug-of-war.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tug: A Mathematical Game</title>
+  <link href="./Tug_ A Mathematical Game_files/css2" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(160deg, #daeeff 0%, #b8d9f5 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px 12px;
+      overflow-x: hidden;
+    }
+    h1 {
+      font-size: clamp(16px, 3vw, 26px);
+      font-weight: 900; color: #1a5fa8;
+      letter-spacing: 1px; margin-bottom: 18px;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .screen { display: none; width: 100%; max-width: 900px; }
+    .screen.active { display: flex; flex-direction: column; align-items: center; }
+    #lobby-card {
+      background: #fff; border-radius: 20px; padding: 36px 44px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      display: flex; flex-direction: column; align-items: center; gap: 22px;
+      max-width: 420px; width: 100%;
+    }
+    .team-inputs { display: flex; gap: 14px; width: 100%; }
+    .team-field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .team-field label { font-size: 12px; font-weight: 800; }
+    .team-field input {
+      padding: 9px 10px; border-radius: 9px; border: 2px solid;
+      font-size: 13px; font-weight: 700; font-family: 'Nunito', sans-serif;
+      outline: none; transition: box-shadow 0.2s;
+    }
+    .team-field input:focus { box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
+    .p1-field label, .p1-field input { color: #e05a5a; border-color: #e05a5a66; background: #e05a5a0f; }
+    .p2-field label, .p2-field input { color: #4a90d9; border-color: #4a90d966; background: #4a90d90f; }
+    .lobby-hint { font-size: 13px; color: #999; text-align: center; line-height: 1.9; }
+    #start-btn {
+      background: linear-gradient(135deg, #1a73e8, #1a5fa8);
+      color: #fff; border: none; border-radius: 12px;
+      padding: 15px 44px; font-size: 17px; font-weight: 900;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(26,115,232,0.35);
+      font-family: 'Nunito', sans-serif; transition: transform 0.1s, filter 0.1s;
+    }
+    #start-btn:hover { filter: brightness(1.08); transform: scale(1.02); }
+    #start-btn:active { transform: scale(0.97); }
+    #game-layout {
+      display: flex; align-items: flex-start; gap: 14px;
+      width: 100%; justify-content: center;
+    }
+    .player-panel {
+      background: #fff; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      display: flex; flex-direction: column;
+      width: 240px; min-width: 190px; flex-shrink: 0;
+      transition: box-shadow 0.2s; position: relative;
+    }
+    .panel-header {
+      padding: 10px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .panel-header .pname { color: #fff; font-weight: 800; font-size: 15px; }
+    .panel-header .pscore {
+      background: rgba(255,255,255,0.25); color: #fff;
+      border-radius: 20px; padding: 2px 14px; font-weight: 800; font-size: 15px;
+    }
+    .panel-question {
+      margin: 16px 16px 14px; padding: 10px 0;
+      font-size: clamp(20px, 3vw, 28px); font-weight: 900;
+      text-align: center; border-radius: 10px; letter-spacing: 1px;
+    }
+    .panel-body { padding: 0 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+    .answer-display {
+      width: 100%; padding: 10px 14px; border-radius: 8px;
+      font-size: 22px; font-weight: bold; text-align: center;
+      min-height: 46px; font-family: 'Nunito', sans-serif;
+      border: 2px solid; background: #fff; transition: border-color 0.2s;
+      color: #222;
+    }
+    .numpad-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+    .numpad-btn {
+      padding: 13px 6px; background: #fff; border: 2px solid #ddd;
+      border-radius: 8px; font-size: 18px; font-weight: bold; color: #333;
+      cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.1s;
+    }
+    .numpad-btn:hover:not(:disabled) { border-color: #aaa; background: #f9f9f9; }
+    .numpad-btn:active:not(:disabled) { transform: scale(0.95); }
+    .numpad-btn:disabled { background: #f5f5f5; color: #ccc; border-color: #eee; cursor: not-allowed; }
+    .btn-clear { background: #e05a5a !important; color: #fff !important; border: none !important; }
+    .btn-clear:disabled { background: #f5f5f5 !important; color: #ccc !important; }
+    .btn-submit { background: #4CAF50 !important; color: #fff !important; border: none !important; }
+    .btn-submit:disabled { background: #f5f5f5 !important; color: #ccc !important; }
+    .flash-overlay {
+      position: absolute; inset: 0; border-radius: 16px;
+      pointer-events: none; opacity: 0; transition: opacity 0.1s;
+    }
+    .flash-correct { background: rgba(76,175,80,0.22); }
+    .flash-wrong   { background: rgba(224,90,90,0.22); }
+    @keyframes flashFade { 0%{opacity:1} 100%{opacity:0} }
+    .do-flash { animation: flashFade 0.6s ease forwards; }
+    @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-50px) scale(1.5)} }
+    .flash-icon {
+      position: absolute; top: 38%; left: 50%; transform: translateX(-50%);
+      font-size: 36px; pointer-events: none; opacity: 0;
+    }
+    .do-float { animation: floatUp 0.7s ease forwards; }
+    #center-panel {
+      flex: 1; min-width: 200px; max-width: 340px;
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10); padding: 14px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .scorebar {
+      display: flex; justify-content: space-between;
+      width: 100%; font-size: 13px; font-weight: 800;
+    }
+    .scorebar .p2side { color: #4a90d9; }
+    .scorebar .p1side { color: #e05a5a; }
+    .score-badge {
+      display: inline-block; border-radius: 20px; padding: 1px 11px; font-size: 13px; color: #fff;
+    }
+    #timer-display {
+      font-size: 22px; font-weight: 900;
+      border-radius: 30px; padding: 4px 20px; transition: color 0.3s;
+    }
+    @keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+    #tug-scene {
+      position: relative; width: 100%; height: 160px; overflow: hidden; flex-shrink: 0;
+    }
+    #ground-line {
+      position: absolute; bottom: 20px; left: 0; right: 0;
+      height: 3px; background: rgba(0,0,0,0.1); border-radius: 2px;
+    }
+    #center-dashes {
+      position: absolute; bottom: 20px; top: 8px; left: 50%;
+      width: 2px; transform: translateX(-50%);
+      background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.25) 0px, rgba(0,0,0,0.25) 5px, transparent 5px, transparent 10px);
+    }
+    #rope-el {
+      position: absolute; bottom: 86px; left: 14%; right: 14%;
+      height: 6px; border-radius: 3px;
+      background: repeating-linear-gradient(90deg, #c9922a 0px, #e8c07d 12px, #c9922a 24px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    #flag-el {
+      position: absolute; bottom: 84px;
+      display: flex; flex-direction: column; align-items: center;
+      transition: left 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #flag-cloth {
+      width: 22px; height: 16px; margin-left: 3px;
+      clip-path: polygon(0 0, 100% 20%, 100% 80%, 0 100%);
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+      transition: background 0.3s;
+    }
+    #flag-pole { width: 3px; height: 22px; background: #555; border-radius: 2px; }
+    .figure { position: absolute; transition: transform 0.4s ease; transform-origin: bottom center; }
+    #prog-wrap {
+      width: 92%; height: 12px; background: #eee;
+      border-radius: 10px; overflow: hidden; position: relative;
+    }
+    #prog-fill {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: linear-gradient(90deg, #4a90d9, #e05a5a);
+      transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1); border-radius: 10px;
+    }
+    #prog-center {
+      position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 3px; background: #fff; transform: translateX(-50%);
+    }
+    .prog-labels {
+      display: flex; justify-content: space-between; width: 92%;
+      font-size: 10px; color: #aaa; font-weight: 700;
+    }
+    #gameover-card {
+      background: #fff; border-radius: 24px; padding: 44px 60px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.14);
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+      text-align: center; max-width: 420px; width: 100%;
+      animation: popIn 0.4s ease;
+    }
+    @keyframes popIn { 0%{transform:scale(0.6);opacity:0} 100%{transform:scale(1);opacity:1} }
+    #winner-trophy { font-size: 52px; }
+    #winner-name { font-size: 28px; font-weight: 900; }
+    #final-scores {
+      display: flex; gap: 32px; padding: 14px 28px;
+      background: #f7f7f7; border-radius: 14px;
+    }
+    .final-score-block { text-align: center; }
+    .final-score-block .fsname { font-size: 12px; font-weight: 800; margin-bottom: 4px; }
+    .final-score-block .fsval { font-size: 30px; font-weight: 900; color: #333; }
+    .go-vs { font-size: 20px; color: #ddd; align-self: center; }
+    .go-buttons { display: flex; gap: 10px; }
+    #play-again-btn {
+      background: linear-gradient(135deg, #1a73e8, #1a5fa8);
+      color: #fff; border: none; border-radius: 11px;
+      padding: 13px 30px; font-size: 15px; font-weight: 900;
+      cursor: pointer; font-family: 'Nunito', sans-serif; transition: filter 0.1s;
+    }
+    #play-again-btn:hover { filter: brightness(1.08); }
+    #menu-btn {
+      background: #f0f0f0; color: #999; border: none; border-radius: 11px;
+      padding: 13px 22px; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: 'Nunito', sans-serif;
+    }
+    #menu-btn:hover { background: #e5e5e5; }
+    @media (max-width: 640px) {
+      #game-layout { flex-direction: column; align-items: center; gap: 10px; }
+      .player-panel { width: 100%; max-width: 340px; }
+      #center-panel { width: 100%; max-width: 340px; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>TUG: A MATHEMATICAL GAME</h1>
+
+<!-- LOBBY -->
+<div id="screen-lobby" class="screen active">
+  <div id="lobby-card">
+    <div class="team-inputs">
+      <div class="team-field p1-field">
+        <label for="name-p1">1st Team</label>
+        <input id="name-p1" type="text" value="1st Team" maxlength="14">
+      </div>
+      <div class="team-field p2-field">
+        <label for="name-p2">2nd Team</label>
+        <input id="name-p2" type="text" value="2nd Team" maxlength="14">
+      </div>
+    </div>
+    <p class="lobby-hint">Two players compete side by side.<br>Answer correctly to pull the rope! 🏆</p>
+    <button id="start-btn">▶ START GAME</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div id="game-layout">
+    <!-- P2 Panel (left) -->
+    <div class="player-panel" id="panel-p2">
+      <div class="panel-header" id="header-p2" style="background:#4a90d9;">
+        <span class="pname" id="pname-p2">2nd Team</span>
+        <span class="pscore" id="pscore-p2">0</span>
+      </div>
+      <div class="panel-question" id="pq-p2" style="color:#4a90d9;background:#4a90d912;">—</div>
+      <div class="panel-body">
+        <div class="answer-display" id="ans-p2" style="border-color:#4a90d9;"></div>
+        <div class="numpad-grid">
+          <button class="numpad-btn" data-player="p2" data-val="1">1</button>
+          <button class="numpad-btn" data-player="p2" data-val="2">2</button>
+          <button class="numpad-btn" data-player="p2" data-val="3">3</button>
+          <button class="numpad-btn" data-player="p2" data-val="4">4</button>
+          <button class="numpad-btn" data-player="p2" data-val="5">5</button>
+          <button class="numpad-btn" data-player="p2" data-val="6">6</button>
+          <button class="numpad-btn" data-player="p2" data-val="7">7</button>
+          <button class="numpad-btn" data-player="p2" data-val="8">8</button>
+          <button class="numpad-btn" data-player="p2" data-val="9">9</button>
+          <button class="numpad-btn btn-clear" data-player="p2" data-val="clear">✕</button>
+          <button class="numpad-btn" data-player="p2" data-val="0">0</button>
+          <button class="numpad-btn btn-submit" data-player="p2" data-val="submit">✓</button>
+        </div>
+      </div>
+      <div class="flash-overlay flash-correct" id="flash-correct-p2"></div>
+      <div class="flash-overlay flash-wrong" id="flash-wrong-p2"></div>
+      <div class="flash-icon" id="flash-icon-p2"></div>
+    </div>
+
+    <!-- Center -->
+    <div id="center-panel">
+      <div class="scorebar">
+        <span class="p2side">
+          <span id="sbar-p2name">2nd Team</span>
+          <span class="score-badge" style="background:#4a90d9;margin-left:4px;" id="sbar-p2score">0</span>
+        </span>
+        <span class="p1side">
+          <span class="score-badge" style="background:#e05a5a;margin-right:4px;" id="sbar-p1score">0</span>
+          <span id="sbar-p1name">1st Team</span>
+        </span>
+      </div>
+      <div id="timer-display" style="color:#4a90d9;background:#4a90d918;">00:15</div>
+      <div id="tug-scene">
+        <div id="ground-line"></div>
+        <div id="center-dashes"></div>
+        <div id="rope-el"></div>
+        <div id="flag-el" style="left: 0px;">
+          <div id="flag-cloth" style="background:#f5a623;"></div>
+          <div id="flag-pole"></div>
+        </div>
+        <svg class="figure" id="fig-p2" style="bottom: 23px; left: 28%; transform: translateX(-50%) rotate(0deg);" width="60" height="110" viewBox="0 0 60 110">
+          <line x1="30" y1="35" x2="30" y2="75" stroke="#4a90d9" stroke-width="4" stroke-linecap="round"></line>
+          <circle cx="30" cy="22" r="12" fill="#4a90d9"></circle>
+          <line x1="30" y1="45" x2="52" y2="58" stroke="#4a90d9" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="30" y1="45" x2="48" y2="38" stroke="#4a90d9" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="30" y1="75" x2="18" y2="105" stroke="#4a90d9" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="30" y1="75" x2="42" y2="105" stroke="#4a90d9" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="18" y1="105" x2="30" y2="107" stroke="#4a90d9" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="42" y1="105" x2="54" y2="107" stroke="#4a90d9" stroke-width="4" stroke-linecap="round"></line>
+          <path d="M18 20 Q18 8 30 8 Q42 8 42 20" fill="#4a90d9" opacity="0.6"></path>
+        </svg>
+        <svg class="figure" id="fig-p1" style="bottom: 23px; left: 70%; transform: translateX(-50%) rotate(0deg);" width="60" height="110" viewBox="0 0 60 110">
+          <line x1="30" y1="35" x2="30" y2="75" stroke="#e05a5a" stroke-width="4" stroke-linecap="round"></line>
+          <circle cx="30" cy="22" r="12" fill="#e05a5a"></circle>
+          <line x1="30" y1="45" x2="8" y2="58" stroke="#e05a5a" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="30" y1="45" x2="12" y2="38" stroke="#e05a5a" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="30" y1="75" x2="18" y2="105" stroke="#e05a5a" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="30" y1="75" x2="42" y2="105" stroke="#e05a5a" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="18" y1="105" x2="6" y2="107" stroke="#e05a5a" stroke-width="4" stroke-linecap="round"></line>
+          <line x1="42" y1="105" x2="30" y2="107" stroke="#e05a5a" stroke-width="4" stroke-linecap="round"></line>
+          <path d="M18 20 Q18 8 30 8 Q42 8 42 20" fill="#e05a5a" opacity="0.6"></path>
+        </svg>
+      </div>
+      <div id="prog-wrap">
+        <div id="prog-fill" style="width:50%;"></div>
+        <div id="prog-center"></div>
+      </div>
+      <div class="prog-labels">
+        <span>◀ <span id="prog-p2label">2nd Team</span></span>
+        <span><span id="prog-p1label">1st Team</span> ▶</span>
+      </div>
+    </div>
+
+    <!-- P1 Panel (right) -->
+    <div class="player-panel" id="panel-p1">
+      <div class="panel-header" id="header-p1" style="background:#e05a5a;">
+        <span class="pname" id="pname-p1">1st Team</span>
+        <span class="pscore" id="pscore-p1">0</span>
+      </div>
+      <div class="panel-question" id="pq-p1" style="color:#e05a5a;background:#e05a5a12;">—</div>
+      <div class="panel-body">
+        <div class="answer-display" id="ans-p1" style="border-color:#e05a5a;"></div>
+        <div class="numpad-grid">
+          <button class="numpad-btn" data-player="p1" data-val="1">1</button>
+          <button class="numpad-btn" data-player="p1" data-val="2">2</button>
+          <button class="numpad-btn" data-player="p1" data-val="3">3</button>
+          <button class="numpad-btn" data-player="p1" data-val="4">4</button>
+          <button class="numpad-btn" data-player="p1" data-val="5">5</button>
+          <button class="numpad-btn" data-player="p1" data-val="6">6</button>
+          <button class="numpad-btn" data-player="p1" data-val="7">7</button>
+          <button class="numpad-btn" data-player="p1" data-val="8">8</button>
+          <button class="numpad-btn" data-player="p1" data-val="9">9</button>
+          <button class="numpad-btn btn-clear" data-player="p1" data-val="clear">✕</button>
+          <button class="numpad-btn" data-player="p1" data-val="0">0</button>
+          <button class="numpad-btn btn-submit" data-player="p1" data-val="submit">✓</button>
+        </div>
+      </div>
+      <div class="flash-overlay flash-correct" id="flash-correct-p1"></div>
+      <div class="flash-overlay flash-wrong" id="flash-wrong-p1"></div>
+      <div class="flash-icon" id="flash-icon-p1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="screen-gameover" class="screen">
+  <div id="gameover-card">
+    <div id="winner-trophy">🏆</div>
+    <div id="winner-name">1st Team</div>
+    <div style="font-size:16px;font-weight:700;color:#aaa;margin-top:-10px;">WINS THE TUG!</div>
+    <div id="final-scores">
+      <div class="final-score-block">
+        <div class="fsname" id="fs-p2name" style="color:#4a90d9;">2nd Team</div>
+        <div class="fsval" id="fs-p2val">0</div>
+      </div>
+      <div class="go-vs">vs</div>
+      <div class="final-score-block">
+        <div class="fsname" id="fs-p1name" style="color:#e05a5a;">1st Team</div>
+        <div class="fsval" id="fs-p1val">0</div>
+      </div>
+    </div>
+    <div class="go-buttons">
+      <button id="play-again-btn">▶ PLAY AGAIN</button>
+      <button id="menu-btn">MENU</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PULL_CORRECT = 10, PULL_WRONG = 3, ROUND_TIME = 15;
+let state = { ropePos: 50, scores: {p1:0,p2:0}, questions: {p1:null,p2:null}, answered: {p1:false,p2:false}, inputs: {p1:'',p2:''}, timer: ROUND_TIME, names: {p1:'1st Team',p2:'2nd Team'}, gameOver: false };
+let timerInterval = null;
+
+function genQ() {
+  const a = Math.floor(Math.random()*9)+2, b = Math.floor(Math.random()*9)+2;
+  return {a, b, answer: a*b};
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function setRopePos(pos) {
+  state.ropePos = Math.max(5, Math.min(95, pos));
+  const pct = state.ropePos;
+  const scene = document.getElementById('tug-scene');
+  const sceneW = scene ? scene.offsetWidth : 300;
+  const ropeLeft = sceneW * 0.14, ropeRight = sceneW * 0.86;
+  const flagLeft = ropeLeft + (pct/100) * (ropeRight - ropeLeft);
+  document.getElementById('flag-el').style.left = flagLeft + 'px';
+  const fc = document.getElementById('flag-cloth');
+  fc.style.background = pct < 46 ? '#4a90d9' : pct > 54 ? '#e05a5a' : '#f5a623';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  const p1Lean = pct > 52 ? -10 : pct < 48 ? 8 : 0;
+  const p2Lean = pct < 48 ? 10 : pct > 52 ? -8 : 0;
+  document.getElementById('fig-p1').style.transform = `translateX(-50%) rotate(${p1Lean}deg)`;
+  document.getElementById('fig-p2').style.transform = `translateX(-50%) rotate(${p2Lean}deg)`;
+}
+function updateScoreDisplay() {
+  ['p1','p2'].forEach(p => {
+    document.getElementById('pscore-'+p).textContent = state.scores[p];
+    document.getElementById('sbar-'+p+'score').textContent = state.scores[p];
+  });
+}
+function updateAnswerDisplay(player) {
+  const el = document.getElementById('ans-'+player);
+  el.textContent = state.inputs[player] || '';
+  el.style.color = state.inputs[player] ? (player==='p1'?'#e05a5a':'#4a90d9') : '#ccc';
+}
+function setTimerDisplay(t) {
+  const el = document.getElementById('timer-display');
+  el.textContent = String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+  const color = t<=5?'#e05a5a': t<=9?'#f5a623':'#4a90d9';
+  el.style.color = color; el.style.background = color+'18';
+  el.style.animation = t<=5 ? 'timerPulse 0.5s ease infinite' : 'none';
+}
+function triggerFlash(player, type) {
+  const overlay = document.getElementById('flash-'+type+'-'+player);
+  const icon = document.getElementById('flash-icon-'+player);
+  overlay.classList.remove('do-flash'); icon.classList.remove('do-float');
+  void overlay.offsetWidth; void icon.offsetWidth;
+  overlay.classList.add('do-flash');
+  icon.textContent = type==='correct' ? '✅' : '❌';
+  icon.classList.add('do-float');
+  setTimeout(() => { overlay.classList.remove('do-flash'); icon.classList.remove('do-float'); }, 800);
+}
+function setDisabled(player, disabled) {
+  document.querySelectorAll(`.numpad-btn[data-player="${player}"]`).forEach(b => b.disabled = disabled);
+}
+function newRound() {
+  if (state.gameOver) return;
+  state.questions.p1 = genQ(); state.questions.p2 = genQ();
+  state.answered = {p1:false,p2:false}; state.inputs = {p1:'',p2:''};
+  state.timer = ROUND_TIME;
+  ['p1','p2'].forEach(p => {
+    const q = state.questions[p];
+    document.getElementById('pq-'+p).textContent = q.a+' × '+q.b+' = ?';
+    updateAnswerDisplay(p); setDisabled(p, false);
+  });
+  setTimerDisplay(state.timer);
+}
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (state.gameOver) { clearInterval(timerInterval); return; }
+    state.timer--;
+    setTimerDisplay(state.timer);
+    if (state.timer <= 0) newRound();
+  }, 1000);
+}
+function handleAnswer(player) {
+  if (state.answered[player] || state.gameOver) return;
+  const val = parseInt(state.inputs[player], 10);
+  if (isNaN(val)) return;
+  const q = state.questions[player];
+  const correct = val === q.answer;
+  state.answered[player] = true; setDisabled(player, true);
+  triggerFlash(player, correct ? 'correct' : 'wrong');
+  if (correct) { state.scores[player]++; updateScoreDisplay(); }
+  const delta = correct ? (player==='p1'?PULL_CORRECT:-PULL_CORRECT) : (player==='p1'?-PULL_WRONG:PULL_WRONG);
+  setRopePos(state.ropePos + delta);
+  if (state.ropePos >= 88) { setTimeout(() => endGame('p1'), 500); return; }
+  if (state.ropePos <= 12) { setTimeout(() => endGame('p2'), 500); return; }
+  if (state.answered.p1 && state.answered.p2) setTimeout(newRound, 900);
+}
+function endGame(winner) {
+  state.gameOver = true; clearInterval(timerInterval);
+  document.getElementById('winner-name').textContent = state.names[winner];
+  document.getElementById('winner-name').style.color = winner==='p1'?'#e05a5a':'#4a90d9';
+  document.getElementById('fs-p1val').textContent = state.scores.p1;
+  document.getElementById('fs-p2val').textContent = state.scores.p2;
+  showScreen('screen-gameover');
+}
+function applyNames() {
+  state.names.p1 = document.getElementById('name-p1').value || '1st Team';
+  state.names.p2 = document.getElementById('name-p2').value || '2nd Team';
+  ['p1','p2'].forEach(p => {
+    document.getElementById('pname-'+p).textContent = state.names[p];
+    document.getElementById('sbar-'+p+'name').textContent = state.names[p];
+    document.getElementById('prog-'+p+'label').textContent = state.names[p];
+    document.getElementById('fs-'+p+'name').textContent = state.names[p];
+  });
+}
+function startGame() {
+  state.gameOver = false; state.scores = {p1:0,p2:0}; state.inputs = {p1:'',p2:''};
+  setRopePos(50); updateScoreDisplay();
+  showScreen('screen-game'); newRound(); startTimer();
+}
+document.getElementById('start-btn').addEventListener('click', () => { applyNames(); startGame(); });
+document.getElementById('play-again-btn').addEventListener('click', () => { applyNames(); startGame(); });
+document.getElementById('menu-btn').addEventListener('click', () => { clearInterval(timerInterval); showScreen('screen-lobby'); });
+document.querySelectorAll('.numpad-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = btn.dataset.player, v = btn.dataset.val;
+    if (state.answered[p] || state.gameOver) return;
+    if (v==='clear') { state.inputs[p]=''; updateAnswerDisplay(p); return; }
+    if (v==='submit') { handleAnswer(p); return; }
+    if (state.inputs[p].length < 4) { state.inputs[p]+=v; updateAnswerDisplay(p); }
+  });
+});
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('screen-game').classList.contains('active')) return;
+  const p2map = {'q':'1','w':'2','e':'3','a':'4','s':'5','d':'6','z':'7','x':'8','c':'9','v':'0','r':'clear','t':'submit'};
+  const p1map = {'u':'1','i':'2','o':'3','j':'4','k':'5','l':'6','m':'7',',':'8','.':'9','n':'0','p':'clear','enter':'submit'};
+  const key = e.key.toLowerCase();
+  if (p2map[key] && !state.answered.p2 && !state.gameOver) { const v=p2map[key]; if(v==='clear'){state.inputs.p2='';updateAnswerDisplay('p2');}else if(v==='submit'){handleAnswer('p2');}else if(state.inputs.p2.length<4){state.inputs.p2+=v;updateAnswerDisplay('p2');} }
+  if (p1map[key] && !state.answered.p1 && !state.gameOver) { const v=p1map[key]; if(v==='clear'){state.inputs.p1='';updateAnswerDisplay('p1');}else if(v==='submit'){handleAnswer('p1');}else if(state.inputs.p1.length<4){state.inputs.p1+=v;updateAnswerDisplay('p1');} }
+});
+window.addEventListener('load', () => setRopePos(50));
+window.addEventListener('resize', () => setRopePos(state.ropePos));
+</script>
+
+
+</body></html>
